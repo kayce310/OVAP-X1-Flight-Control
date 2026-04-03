@@ -28,7 +28,8 @@ function [dx, F_b_total, M_b_total] = dynamics_6dof(t, x, actuators, sys)
     
     % Kinematics & Navigation
     phi = state.euler(1); theta = state.euler(2);
-    tt = tan(theta); ct = cos(theta); if abs(ct)<0.01, ct=0.01; end
+    ct = cos(theta); if abs(ct)<0.01, ct=0.01; end
+    tt = sin(theta)/ct; % An toàn tuyệt đối
     phi_dot   = state.rates(1) + (state.rates(2)*sin(phi) + state.rates(3)*cos(phi)) * tt;
     theta_dot = state.rates(2)*cos(phi) - state.rates(3)*sin(phi);
     psi_dot   = (state.rates(2)*sin(phi) + state.rates(3)*cos(phi)) / ct;
@@ -53,14 +54,15 @@ function [F_b, M_b] = calculate_actuator_forces(actuators, sys)
     lam_c = sys.motor.coax_torque_eff; % Suy giảm momen xoắn
     
     for i = 1:4
-        idx_top = i;
-        idx_bot = i + 4;
+       % [CẬP NHẬT ĐỒNG BỘ]: Trích xuất ID động cơ từ hệ thống
+        idx_top = sys.motor.top_idx(i);
+        idx_bot = sys.motor.bot_idx(i);
         
         T_top = actuators.thrust(idx_top);
         T_bot = actuators.thrust(idx_bot);
         
-        % 1. Lực đẩy tổng cộng của 1 ngàm (Có tính suy hao lực đẩy eta_c)
-        T_i = T_top + T_bot * eta_c;
+        % Tính tổng lực (Đã bao gồm suy hao đồng trục)
+        T_i = T_top + T_bot * sys.motor.coax_eff;
         
         % 2. Momen Yaw nội tại (Có tính chiều quay dir_top và suy hao momen lam_c)
         M_delta_i = sys.motor.dir_top(i) * c_q * (T_top - lam_c * T_bot);

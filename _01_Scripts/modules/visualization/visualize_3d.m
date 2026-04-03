@@ -96,52 +96,74 @@ function visualize_3d(hist, sys, t_arr)
     light('Parent', ax, 'Position', [5 5 20], 'Style', 'local'); lighting gouraud; material dull;
     
     %% ================= UI CONTROLS =================
-    gui.idx = 1; gui.playing = false; gui.speed = PLAY_SPEED_INIT; gui.view_mode = 1;
+    % Đặt mặc định khởi động vào luôn Mode 3 (Follow View) để xem cho rõ
+    gui.idx = 1; gui.playing = false; gui.speed = PLAY_SPEED_INIT; gui.view_mode = 3; 
     
     hPanel = uipanel('Parent', hFig, 'BackgroundColor', PANEL_BG_COLOR, 'Units', 'normalized', 'Position', [0.02 0.02 0.96 0.10]);
     
     hBtnPlay = uicontrol('Parent', hPanel, 'Style', 'pushbutton', 'String', '▶ PLAY', ...
-        'Units', 'normalized', 'Position', [0.01 0.2 0.08 0.6], 'Callback', @cb_play, ...
-        'FontWeight', 'bold', 'Interruptible', 'on');
+        'Units', 'normalized', 'Position', [0.01 0.2 0.08 0.6], 'Callback', @cb_play, 'FontWeight', 'bold');
         
     hSlider = uicontrol('Parent', hPanel, 'Style', 'slider', 'Min', 1, 'Max', length(t_arr), 'Value', 1, 'Units', 'normalized', 'Position', [0.10 0.3 0.55 0.4], 'Callback', @cb_slider);
     
-    uicontrol('Parent', hPanel, 'Style', 'text', 'String', 'MODE:', 'Units', 'normalized', 'Position', [0.66 0.3 0.05 0.3], 'BackgroundColor', PANEL_BG_COLOR, 'FontWeight', 'bold');
-    hModeDrop = uicontrol('Parent', hPanel, 'Style', 'popupmenu', 'String', {'World View (Smart Bounds)', 'Lab View (Fixed Center)'}, 'Value', 1, 'Units', 'normalized', 'Position', [0.71 0.3 0.15 0.4], 'Callback', @cb_mode);
+    uicontrol('Parent', hPanel, 'Style', 'text', 'String', 'CAMERA:', 'Units', 'normalized', 'Position', [0.66 0.3 0.05 0.3], 'BackgroundColor', PANEL_BG_COLOR, 'FontWeight', 'bold');
+    
+    % [CẬP NHẬT]: Thêm Mode 3 (Follow View) vào Dropdown
+    hModeDrop = uicontrol('Parent', hPanel, 'Style', 'popupmenu', ...
+        'String', {'1: World View (Smart Bounds)', '2: Lab View (Fixed)', '3: Follow View (Iso / Fit)'}, ...
+        'Value', gui.view_mode, 'Units', 'normalized', 'Position', [0.72 0.3 0.16 0.4], 'Callback', @cb_mode);
     
     uicontrol('Parent', hPanel, 'Style', 'edit', 'String', num2str(PLAY_SPEED_INIT), 'Units', 'normalized', 'Position', [0.90 0.3 0.05 0.4], 'Callback', @(s,~) set_speed(s), 'BackgroundColor', 'w');
     
     hInfo = uicontrol('Parent', hFig, 'Style', 'text', 'String', '', 'Units', 'normalized', ...
-        'Position', [0.01 0.15 0.22 0.80], 'BackgroundColor', 'w', 'HorizontalAlignment', 'left', ...
-        'FontName', 'Consolas', 'FontSize', 10, 'FontWeight', 'bold');
+        'Position', [0.01 0.15 0.22 0.80], 'BackgroundColor', 'w', 'HorizontalAlignment', 'left', 'FontName', 'Consolas', 'FontSize', 10, 'FontWeight', 'bold');
+        
     %% ================= CORE UPDATE FUNCTION =================
     function update_frame(k)
         if k > length(t_arr), k = length(t_arr); end
         T_NED2ENU = [0 1 0; 1 0 0; 0 0 -1];
         R_b2e = rot_mat(hist.x(7:9, k));
         
+        pos_draw = [pos_e(k), pos_n(k), pos_alt(k)]; 
+        
         if gui.view_mode == 2
             % [MODE 2]: Cố định UAV tại tâm, không vẽ mặt đất
             pos_draw = [0, 0, 0]; 
             set(hGround, 'Visible', 'off'); set(hTrail, 'Visible', 'off');
             xlim(ax, [-1 1]); ylim(ax, [-1 1]); zlim(ax, [-1 1]);
-        else
-            % [MODE 1]: UAV bay thực tế
-            pos_draw = [pos_e(k), pos_n(k), pos_alt(k)]; 
+            
+        elseif gui.view_mode == 3
+            % [MODE 3 TÍNH NĂNG MỚI]: FOLLOW VIEW (ISO / FIT)
             set(hGround, 'Visible', 'on'); set(hTrail, 'Visible', 'on');
             
-            % BƯỚC 1: Đọc mức độ Zoom/Pan hiện tại của người dùng
+            % Khóa chặt camera vào UAV (Span 1.5m để phóng to hết cỡ vào UAV)
+            span = 1.5; 
+            cx = pos_draw(1); cy = pos_draw(2); cz = pos_draw(3);
+            
+            xlim(ax, [cx - span, cx + span]);
+            ylim(ax, [cy - span, cy + span]);
+            zlim(ax, [cz - span, cz + span]);
+            
+            % Khóa góc nhìn về chuẩn Isometric (Giống Simscape)
+            view(ax, 37.5, 30); 
+            
+            % Rải lưới Ground chạy theo máy bay
+            grid_step = 0.5;
+            [Xg, Yg] = meshgrid(cx-span : grid_step : cx+span, cy-span : grid_step : cy+span);
+            set(hGround, 'XData', Xg, 'YData', Yg, 'ZData', zeros(size(Xg)));
+            
+        else
+            % [MODE 1]: WORLD VIEW (Deadband Tracking cũ của bạn)
+            set(hGround, 'Visible', 'on'); set(hTrail, 'Visible', 'on');
+            
             xl = xlim(ax); yl = ylim(ax); zl = zlim(ax);
             cx = mean(xl); cy = mean(yl); cz = mean(zl);
             span = max([(xl(2)-xl(1))/2, (yl(2)-yl(1))/2, (zl(2)-zl(1))/2]);
             
-            % BƯỚC 2: Ràng buộc độ Zoom lớn nhất và nhỏ nhất
-            if span < 1.5, span = 1.5; end           % Giới hạn sát nhất: UAV +- 1.5m
-            if span > max_span, span = max_span; end % Giới hạn xa nhất: Cả hành trình
+            if span < 1.5, span = 1.5; end           
+            if span > max_span, span = max_span; end 
             
-            % BƯỚC 3: Ràng buộc UAV KHÔNG THỂ BIẾN MẤT (Deadband Tracking)
-            % Tính toán "hộp giới hạn an toàn", UAV chạm mép hộp thì Camera sẽ bị đẩy đi
-            margin = 1.5; % Lề 1.5m so với mép màn hình
+            margin = 1.5; 
             box_lim = max(0, span - margin);
             
             if pos_draw(1) > cx + box_lim, cx = pos_draw(1) - box_lim; end
@@ -151,12 +173,10 @@ function visualize_3d(hist, sys, t_arr)
             if pos_draw(3) > cz + box_lim, cz = pos_draw(3) - box_lim; end
             if pos_draw(3) < cz - box_lim, cz = pos_draw(3) + box_lim; end
             
-            % BƯỚC 4: Cập nhật lại biểu đồ
             xlim(ax, [cx - span, cx + span]);
             ylim(ax, [cy - span, cy + span]);
             zlim(ax, [cz - span, cz + span]);
             
-            % Mặt đất tĩnh tại Z=0, rải lưới theo vùng nhìn hiện tại
             grid_step = max(1, span/5);
             [Xg, Yg] = meshgrid(cx-span : grid_step : cx+span, cy-span : grid_step : cy+span);
             set(hGround, 'XData', Xg, 'YData', Yg, 'ZData', zeros(size(Xg)));

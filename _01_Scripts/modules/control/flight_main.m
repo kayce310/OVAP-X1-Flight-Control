@@ -1,44 +1,49 @@
-function [actuators_cmd, ctrl_state] = flight_main(state_est, setpoints, sys, ctrl_state, params, act_phys)
+function [actuators_cmd, ctrl_state] = flight_main(state_est, setpoints, sys, ctrl_state, active_params, current_config, act_phys)
 % File Name: flight_main.m
 % Position: Root > modules > control > flight_main.m
-% Description: Main control loop. Fully compliant with 6-DOF Decoupling.
+% Description: The Router. Connects chosen Controller with chosen Allocator.
 
     dt = sys.sim.dt;
+    euler_curr = state_est(7:9);
     
-    % Unpack State
-    pos_curr_earth = state_est(1:3);   
-    vel_curr_body  = state_est(4:6);   
-    euler_curr     = state_est(7:9);   
-    rate_curr      = state_est(10:12);
-    
-    % Chuyển đổi vận tốc Body -> Earth (Quan trọng cho Position PID)
-    R_b2e = rotation_matrix(euler_curr); 
-    vel_curr_earth = R_b2e * vel_curr_body; 
-    
-    % --- 1. Position Control Loop (Translational Dynamics) ---
-    [F_body_des, ctrl_state.pos] = position_ctrl(...
-        setpoints.pos, pos_curr_earth, vel_curr_earth, euler_curr, dt, params, ctrl_state.pos);
+    % --- [BẢO VỆ]: Nếu chạy code cũ chưa kịp cập nhật main_sim ---
+    if nargin < 6 || isempty(current_config)
+        current_config.controller = 'pid';
+        current_config.allocator  = 'analytical';
+    end
+
+    % =====================================================================
+    % 1. ĐIỀU KHIỂN CẤP CAO (CONTROLLERS)
+    % =====================================================================
+    if strcmp(current_config.controller, 'pid')
+        % Khối điều khiển tiêu chuẩn xuất ra 3 tín hiệu chuẩn hóa
+        [acc_cmd_earth, F_vec_body, M_body_des, ctrl_state] = ctrl_pid(...
+            state_est, setpoints, dt, active_params, ctrl_state);
+    else
+        error('Controller [%s] chưa được hỗ trợ!', current_config.controller);
+    end
+
+    % =====================================================================
+    % 2. PHÂN BỔ LỰC CHẤP HÀNH (ALLOCATORS)
+    % =====================================================================
+    if strcmp(current_config.allocator, 'analytical')
+        % Lượng giác 1:1 (Chống lật, Bù tiền tiếp)
+        [cmd_thrust, cmd_alpha, cmd_beta] = alloc_analytical(...
+            acc_cmd_earth, M_body_des, euler_curr, sys, act_phys);
+            
+    elseif strcmp(current_config.allocator, 'wpin')
+        % Giả nghịch đảo Jacobian truyền thống
+        tau_des = [F_vec_body; M_body_des];
+        [cmd_thrust, cmd_alpha, cmd_beta] = alloc_wpin(tau_des, sys, act_phys);
         
-    % --- 2. Attitude Control Loop (Rotational Dynamics) ---
-    target_euler = setpoints.euler; 
-    [M_body_des, ctrl_state.att] = attitude_ctrl(...
-        target_euler, euler_curr, rate_curr, dt, params, ctrl_state.att);
-        
-    % --- 3. Dynamic Control Allocation (WPIN 16-DOF) ---
-    tau_des = [F_body_des; M_body_des];
-    [cmd_thrust, cmd_alpha, cmd_beta] = control_allocation(tau_des, sys, act_phys);
-    
-    % 4. Pack Output (Lưu ý: cmd_thrust hiện tại là 8x1)
+    else
+        error('Allocator [%s] chưa được hỗ trợ!', current_config.allocator);
+    end
+
+    % =====================================================================
+    % 3. ĐÓNG GÓI ĐẦU RA 16-DOF
+    % =====================================================================
     actuators_cmd.thrust = cmd_thrust;
     actuators_cmd.alpha  = cmd_alpha;
     actuators_cmd.beta   = cmd_beta;
-end
-
-%% ================= LOCAL FUNCTIONS =================
-function R = rotation_matrix(e)
-    % Ma trận quay từ Body sang Earth (R_E^B)^T = R_B^E theo chuẩn NED
-    ph = e(1); th = e(2); ps = e(3);
-    R = [cos(th)*cos(ps), sin(ph)*sin(th)*cos(ps)-cos(ph)*sin(ps), cos(ph)*sin(th)*cos(ps)+sin(ph)*sin(ps);
-         cos(th)*sin(ps), sin(ph)*sin(th)*sin(ps)+cos(ph)*cos(ps), cos(ph)*sin(th)*sin(ps)-sin(ph)*cos(ps);
-        -sin(th),         sin(ph)*cos(th),                         cos(ph)*cos(th)];
 end

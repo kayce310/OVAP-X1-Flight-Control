@@ -1,25 +1,60 @@
-function params = controller_params(sys)
+function params = controller_params(sys, limits)
 % File Name: controller_params.m
-% Description: Tuned for Heavy 2.6kg 650mm Coaxial Tilt-Rotor.
+% Description: Pure Tuning Gains for PID controllers. Limits are dynamically synced.
 
-    % --- 1. Position Control ---
-    params.pos_P = [1.2; 1.2; 2.0]; % 
-    params.max_vel = [2.0; 2.0; 1.5]; % m/s
+    % =====================================================================
+    % 1. THÔNG SỐ CHO BỘ PID + WPIN
+    % =====================================================================
+    pid_wpin.pos_P   = [2.0; 2.0; 2.5]; 
     
-    params.vel_Kp = [3.0; 3.0; 6.0];
-    params.vel_Ki = [0.1; 0.1; 0.2];
-    params.vel_Kd = [0.2; 0.2; 0.4];
-    params.max_acc = [1.5; 1.5; 3.0]; % m/s^2
+    pid_wpin.vel_Kp  = [3.0; 3.0; 6.0];
+    pid_wpin.vel_Ki  = [0.1; 0.1; 0.2];
+    pid_wpin.vel_Kd  = [0.2; 0.2; 0.4];
     
-    % --- 2. Attitude Control  ---
-    params.att_P = [15.0; 15.0; 8.0]; % Phản ứng cực gắt với sai số góc
+    pid_wpin.att_P   = [15.0; 15.0; 8.0]; 
     
-    % Momen PID: Khung to cần Kp, Kd rất lớn để chống lật
-    params.rate_Kp = [25.0; 25.0; 15.0]; 
-    params.rate_Ki = [2.0; 2.0; 1.0];
-    params.rate_Kd = [3.0; 3.0; 1.5];
-    params.max_torque = [10.0; 10.0; 8.0]; % N.m
+    pid_wpin.rate_Kp = [25.0; 25.0; 15.0]; 
+    pid_wpin.rate_Ki = [2.0;  2.0;  1.0];
+    pid_wpin.rate_Kd = [3.0;  3.0;  1.5];
     
-    params.mass = sys.mass;
-    params.g = sys.sim.g;
+    % --- Đồng bộ giới hạn từ init_limits ---
+    pid_wpin.max_vel    = limits.v_max; 
+    pid_wpin.max_acc    = limits.a_max; 
+    pid_wpin.max_torque = limits.max_torque; 
+    
+    % --- Hằng số vật lý ---
+    pid_wpin.mass = sys.mass;
+    pid_wpin.g    = sys.sim.g;
+
+    % =====================================================================
+    % 2. THÔNG SỐ CHO BỘ PID + ANALYTICAL MIXER
+    % =====================================================================
+    pid_analytical.pos_P   = [4.0; 4.0; 1.0]; 
+    
+    pid_analytical.vel_Kp  = [4.0; 4.0; 1.0];
+    pid_analytical.vel_Ki  = [0.001; 0.001; 0.001];
+    pid_analytical.vel_Kd  = [2.5; 2.5; 1.6];
+    
+    %======================================================================
+
+    pid_analytical.att_P   = [4; 4; 2]; 
+    
+    pid_analytical.rate_Kp = [1; 1; 1]; 
+    pid_analytical.rate_Ki = [0.001; 0.001; 0.001];
+    pid_analytical.rate_Kd = [0.5; 0.5; 0.6];
+    
+    % --- ĐỒNG BỘ GIỚI HẠN ---
+    pid_analytical.max_vel    = limits.v_max; 
+    pid_analytical.max_acc    = limits.a_max; 
+    pid_analytical.max_torque = limits.max_torque; 
+    
+    % --- Hằng số vật lý ---
+    pid_analytical.mass = sys.mass;
+    pid_analytical.g    = sys.sim.g;
+
+    % =====================================================================
+    % 3. ĐÓNG GÓI XUẤT RA
+    % =====================================================================
+    params.pid_wpin       = pid_wpin;
+    params.pid_analytical = pid_analytical;
 end
