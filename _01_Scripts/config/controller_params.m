@@ -29,11 +29,11 @@ function params = controller_params(sys, limits)
     % =====================================================================
     % 2. THÔNG SỐ CHO BỘ PID + ANALYTICAL MIXER
     % =====================================================================
-    pid_analytical.pos_P   = [4.0; 4.0; 1.0]; 
+    pid_analytical.pos_P   = [4.0; 4.0; 2.0]; 
     
-    pid_analytical.vel_Kp  = [4.0; 4.0; 1.0];
+    pid_analytical.vel_Kp  = [4.0; 4.0; 2.0];
     pid_analytical.vel_Ki  = [0.001; 0.001; 0.001];
-    pid_analytical.vel_Kd  = [2.5; 2.5; 1.6];
+    pid_analytical.vel_Kd  = [2.5; 2.5; 1.0];
     
     %======================================================================
 

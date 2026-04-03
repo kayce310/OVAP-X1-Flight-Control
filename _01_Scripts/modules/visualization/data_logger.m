@@ -51,13 +51,27 @@ function out = data_logger(mode, varargin)
         % --- MODULE 1: POSITION (X, Y, Z) ---
         if ismember('pos', active_plots)
             tabPos = uitab('Parent', tgroup, 'Title', '1. Position');
-            labels = {'North X (m)', 'East Y (m)', 'Down Z (m)'};
+            % [SỬA]: Đổi nhãn từ 'Down Z' thành 'Altitude Z' để trực quan hơn
+            labels = {'North X (m)', 'East Y (m)', 'Altitude Z (m)'}; 
+            
             for row = 1:3
-                ax = axes('Parent', tabPos, 'Position', [0.08 1.0-row*0.3 0.88 0.22]); hold(ax, 'on'); grid(ax, 'on'); ylabel(ax, labels{row});
-                for i = 1:num_tests
-                    plot(ax, t, histories{i}.x(row, 1:end_idx), 'Color', color_map(i,:), 'LineWidth', 1.5, 'DisplayName', active_tests{i}.name);
+                ax = axes('Parent', tabPos, 'Position', [0.08 1.0-row*0.3 0.88 0.22]); 
+                hold(ax, 'on'); grid(ax, 'on'); ylabel(ax, labels{row});
+                
+                % [SỬA]: Tạo hệ số đảo dấu. Nếu là trục Z (row 3) thì nhân -1
+                sign_mod = 1;
+                if row == 3
+                    sign_mod = -1;
                 end
-                plot(ax, t, histories{1}.pos_des(row, 1:end_idx), 'k--', 'LineWidth', 1.2, 'DisplayName', 'Setpoint');
+                
+                for i = 1:num_tests
+                    plot(ax, t, sign_mod * histories{i}.x(row, 1:end_idx), ...
+                         'Color', color_map(i,:), 'LineWidth', 1.5, 'DisplayName', active_tests{i}.name);
+                end
+                
+                plot(ax, t, sign_mod * histories{1}.pos_des(row, 1:end_idx), ...
+                     'k--', 'LineWidth', 1.2, 'DisplayName', 'Setpoint');
+                     
                 if row == 3, xlabel(ax, 'Time (s)'); end
                 add_y_margin(ax); 
                 setup_interactive_legend(ax);

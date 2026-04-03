@@ -16,16 +16,16 @@ function target = mission_manager(t)
         target.euler = deg2rad([0; 0; 0]);
         
     elseif t < 15.0
-        target.pos   = [0; 0; -5.0];
-        target.euler = deg2rad([0; 0; 0]);
+        target.pos   = [10; 0; -10.0];
+        target.euler = deg2rad([0; 10; 0]);
         
     elseif t < 20.0
-        target.pos   = [0; 0; -5.0];
-        target.euler = deg2rad([0; 0; 0]);
+        target.pos   = [10; 0; -10.0];
+        target.euler = deg2rad([0; 10; 0]);
         
-    % Phase 4: Hold
+    % 
     else
-        target.pos   = [0; 0; -5.0];
-        target.euler = deg2rad([0; 0; 0]);
+        target.pos   = [10; 0; -10.0];
+        target.euler = deg2rad([0; 10; 0]);
     end
 end

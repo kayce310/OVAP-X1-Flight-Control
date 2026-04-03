@@ -7,11 +7,17 @@ function [setpoint, traj_state] = trajectory_planner(target, dt, constraints, tr
     % 1. KHỞI TẠO BẢO VỆ
     % =====================================================================
     if isempty(traj_state) || ~isfield(traj_state, 'pos')
-        traj_state.pos   = target.pos; 
+        % [ĐÃ SỬA]: Lấy tọa độ xuất phát từ thông số hệ thống (Mặt đất: 0,0,0)
+        traj_state.pos   = sys.init.x(1:3); 
         traj_state.vel   = zeros(3,1);
         traj_state.acc   = zeros(3,1);
-        traj_state.euler = target.euler;
+        
+        % [ĐÃ SỬA]: Lấy góc xuất phát từ thông số hệ thống
+        traj_state.euler = sys.init.x(7:9); 
         traj_state.rate  = zeros(3,1);
+        
+        % Bổ sung thêm dòng này để chống lỗi nếu Data Logger cố gắng đọc
+        traj_state.rate_dot = zeros(3,1); 
     end
 
     % =====================================================================
