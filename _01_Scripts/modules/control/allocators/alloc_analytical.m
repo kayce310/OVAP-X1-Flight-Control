@@ -28,6 +28,7 @@ function [cmd_thrust, cmd_alpha, cmd_beta] = alloc_analytical(acc_cmd_earth, M_b
     % Xoay vector gia tốc
     ax_heading = ax_world * cos(yaw) + ay_world * sin(yaw);
     ay_heading = -ax_world * sin(yaw) + ay_world * cos(yaw);
+    % ay_heading = ax_world * sin(yaw) + ay_world * cos(yaw);
     
     % Khóa giới hạn gia tốc ngang
     ratio_x = max(min(ax_heading / sys.sim.g, 0.99), -0.99);
@@ -79,8 +80,8 @@ function [cmd_thrust, cmd_alpha, cmd_beta] = alloc_analytical(acc_cmd_earth, M_b
     T_base = (total_z_req / (cos(mean_global_alpha) * cos(mean_global_beta))) / 4;
     
     % Xử lý Mô-men Ký sinh
-    K_cross_pitch = 0.0; 
-    K_cross_roll  = 0.0; 
+    K_cross_pitch = 0; 
+    K_cross_roll  = 0; 
     net_alpha = mean(math_alpha_fb);  
     net_beta  = mean(math_beta_fb);  
     

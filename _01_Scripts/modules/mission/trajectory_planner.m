@@ -42,7 +42,7 @@ function [setpoint, traj_state] = trajectory_planner(target, dt, constraints, tr
     % =====================================================================
     % Hệ số P của quỹ đạo (Độ gắt khi kéo về đích)
     k_pos_smooth = 1.0; 
-    k_att_smooth = 2.0; 
+    k_att_smooth = 0.5; 
 
     % --- A. Quy hoạch Vị trí (XYZ) ---
     for i = 1:3
