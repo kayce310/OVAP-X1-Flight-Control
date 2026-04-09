@@ -31,6 +31,11 @@ function [actuators_cmd, ctrl_state] = flight_main(state_est, setpoints, sys, ct
         [cmd_thrust, cmd_alpha, cmd_beta] = alloc_analytical(...
             acc_cmd_earth, M_body_des, euler_curr, sys, act_phys);
             
+    elseif strcmp(current_config.allocator, 'vectoring')
+        % [THÊM MỚI VÀO ĐÂY]: Gọi hàm 3D Force Vectoring V1.5
+        [cmd_thrust, cmd_alpha, cmd_beta] = alloc_vectoring(...
+            acc_cmd_earth, M_body_des, euler_curr, sys, act_phys);
+            
     elseif strcmp(current_config.allocator, 'wpin')
         % Giả nghịch đảo Jacobian truyền thống
         tau_des = [F_vec_body; M_body_des];

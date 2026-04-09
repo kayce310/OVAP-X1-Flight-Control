@@ -31,9 +31,10 @@ PLANNER_MODE = 1;
 
 % --- C. CẤU HÌNH XUẤT HÌNH ẢNH 3D DIGITAL TWIN ---
 % 0: Tắt 3D.  
-% 1: Xem 3D của cấu hình Test số 1 (Analytical). 
-% 2: Xem 3D của cấu hình Test số 2 (WPIN).
-VISUALIZE_TEST_IDX = 1; 
+% 1: Xem 3D của cấu hình Test số 1. 
+% 2: Xem 3D của cấu hình Test số 2.
+% 3: ...
+VISUALIZE_TEST_IDX = 0; 
 
 % --- D. CẤU HÌNH MÔI TRƯỜNG ---
 % [0: TẮT NHIỄU TUYỆT ĐỐI] | [1: BẬT NHIỄU]
@@ -41,8 +42,9 @@ USE_NOISE = 0;
 
 % --- E. DANH SÁCH CÁC CẤU HÌNH SO SÁNH (A/B TESTING) ---
 active_tests = {
-    struct('name', 'PID + Analytical', 'controller', 'pid', 'allocator', 'analytical');
-    struct('name', 'PID + WPIN',        'controller', 'pid', 'allocator', 'wpin');
+    struct('name', 'PID + Analytical V1.2', 'controller', 'pid', 'allocator', 'analytical');
+    struct('name', 'PID + Vectoring V1.5',  'controller', 'pid', 'allocator', 'vectoring');
+    struct('name', 'PID + WPIN V2.0',       'controller', 'pid', 'allocator', 'wpin');
 };
 
 % =========================================================================
@@ -124,6 +126,8 @@ for i_test = 1:num_tests
             % Thử nghiệm Allocator đang chọn
             if strcmp(current_config.allocator, 'analytical')
                 [act_cmd.thrust, act_cmd.alpha, act_cmd.beta] = alloc_analytical(acc_cmd_earth, M_body_des, euler_curr, sys, act_phys);
+            elseif strcmp(current_config.allocator, 'vectoring')
+                [act_cmd.thrust, act_cmd.alpha, act_cmd.beta] = alloc_vectoring(acc_cmd_earth, M_body_des, euler_curr, sys, act_phys);
             else
                 [act_cmd.thrust, act_cmd.alpha, act_cmd.beta] = alloc_wpin(tau_des, sys, act_phys);
             end
@@ -155,7 +159,7 @@ fprintf('\n======================================================\n');
 fprintf('ĐANG KẾT XUẤT KẾT QUẢ...\n');
 
 % 1. XUẤT BIỂU ĐỒ SO SÁNH (OVERLAY PLOTS)
-data_logger('plot_multi', histories, sys, active_tests, {'pos', 'att', 'act', 'servo'});
+data_logger('plot_multi', histories, sys, active_tests, {'pos', 'att', 'act'});
 
 % 2. XUẤT MÔ HÌNH 3D DIGITAL TWIN (BẬT LẠI THEO YÊU CẦU CỦA BẠN)
 if VISUALIZE_TEST_IDX > 0 && VISUALIZE_TEST_IDX <= num_tests
