@@ -31,9 +31,10 @@ PLANNER_MODE = 1;
 
 % --- C. CẤU HÌNH XUẤT HÌNH ẢNH 3D DIGITAL TWIN ---
 % 0: Tắt 3D.  
-% 1: Xem 3D của cấu hình Test số 1 (Analytical). 
-% 2: Xem 3D của cấu hình Test số 2 (WPIN).
-VISUALIZE_TEST_IDX = 1; 
+% 1: Xem 3D của cấu hình Test số 1. 
+% 2: Xem 3D của cấu hình Test số 2.
+% 3: ...
+VISUALIZE_TEST_IDX = 0; 
 
 % --- D. CẤU HÌNH MÔI TRƯỜNG ---
 % [0: TẮT NHIỄU TUYỆT ĐỐI] | [1: BẬT NHIỄU]
@@ -41,8 +42,14 @@ USE_NOISE = 0;
 
 % --- E. DANH SÁCH CÁC CẤU HÌNH SO SÁNH (A/B TESTING) ---
 active_tests = {
-    struct('name', 'PID + Analytical', 'controller', 'pid', 'allocator', 'analytical');
-    struct('name', 'PID + WPIN',        'controller', 'pid', 'allocator', 'wpin');
+    struct('name', 'PID + Analytical V1.2', 'controller', 'pid', 'allocator', 'analytical', 'kinematics', 'euler');
+    struct('name', 'SO(3)(Lật góc chủ động) PID + Analytical',  'controller', 'so3', 'allocator', 'analytical', 'kinematics', 'euler');
+    struct('name', 'PID + Analytical (Vectoring)',  'controller', 'pid', 'allocator', 'vectoring', 'kinematics', 'euler');
+    struct('name', 'SO(3)(Lật góc chủ động) PID + Analytical (Vectoring)',  'controller', 'so3', 'allocator', 'vectoring', 'kinematics', 'euler');
+    % struct('name', 'PID + WPIN V2.0',       'controller', 'pid', 'allocator', 'wpin', 'kinematics', 'euler');
+    % struct('name', 'Euler Plant', 'controller', 'so3', 'allocator', 'vectoring', 'kinematics', 'euler');
+    % struct('name', 'DCM Plant', 'controller', 'so3', 'allocator', 'vectoring', 'kinematics', 'euler');
+    % struct('name', 'SO(3) Euler ', 'controller', 'pid', 'allocator', 'analytical', 'kinematics', 'euler');
 };
 
 % =========================================================================
@@ -66,13 +73,24 @@ for i_test = 1:num_tests
     % Nạp đúng bộ thông số (Gain Tuning)
     if strcmp(current_config.allocator, 'analytical')
         active_params = all_params.pid_analytical;
-    else
+    elseif strcmp(current_config.allocator, 'vectoring')
+        active_params = all_params.pid_vectoring;
+    else 
         active_params = all_params.pid_wpin;
     end
 
     % Reset Trạng thái hệ thống
     N_steps = floor(sys.sim.t_end / dt) + 1;
-    x_true  = zeros(12, 1); 
+    % Nếu code cũ không có trường kinematics, mặc định là euler
+    if ~isfield(current_config, 'kinematics'), current_config.kinematics = 'euler'; end
+
+    % Khởi tạo
+    if strcmp(current_config.kinematics, 'dcm')
+        x_true = zeros(18, 1);
+        x_true(7:15) = reshape(eye(3), 9, 1); % R_init = Ma trận đơn vị
+    else
+        x_true = zeros(12, 1); 
+    end
     
     act_phys.thrust = zeros(8,1); act_phys.alpha = zeros(4,1); act_phys.beta = zeros(4,1);
     act_cmd         = act_phys;
@@ -82,12 +100,21 @@ for i_test = 1:num_tests
     % traj_state.euler = x_true(7:9); traj_state.rate = x_true(10:12);
     traj_state = [];
     
-    hist = data_logger('init', N_steps, x_true);
+    % hist = data_logger('init', N_steps, x_true);
+    % Dịch trạng thái khởi tạo về 12-biến để tương thích với cấu trúc Logger
+    if strcmp(current_config.kinematics, 'dcm')
+        x_log_init = sensor_router('dcm', x_true, 0);
+    else
+        x_log_init = x_true;
+    end
+    
+    hist = data_logger('init', N_steps, x_log_init);
     
     % --- VÒNG LẶP THỜI GIAN (FLIGHT LOOP) ---
     t = 0;
     for k = 1:N_steps
-        state_est = sensor_model(x_true, USE_NOISE);
+        % Dùng Sensor Router thay vì gọi trực tiếp
+        state_est = sensor_router(current_config.kinematics, x_true, USE_NOISE);
         
         if SIM_MODE == 1
             % =============================================================
@@ -124,6 +151,8 @@ for i_test = 1:num_tests
             % Thử nghiệm Allocator đang chọn
             if strcmp(current_config.allocator, 'analytical')
                 [act_cmd.thrust, act_cmd.alpha, act_cmd.beta] = alloc_analytical(acc_cmd_earth, M_body_des, euler_curr, sys, act_phys);
+            elseif strcmp(current_config.allocator, 'vectoring')
+                [act_cmd.thrust, act_cmd.alpha, act_cmd.beta] = alloc_vectoring(acc_cmd_earth, M_body_des, euler_curr, sys, act_phys);
             else
                 [act_cmd.thrust, act_cmd.alpha, act_cmd.beta] = alloc_wpin(tau_des, sys, act_phys);
             end
@@ -136,15 +165,22 @@ for i_test = 1:num_tests
         
         % Tích phân Vật lý (Chỉ chạy nếu không bị ép trên Bàn tĩnh)
         if SIM_MODE ~= 3
-            [k1,~,~] = dynamics_6dof(t,          x_true,            act_phys, sys);
-            [k2,~,~] = dynamics_6dof(t+0.5*dt, x_true + 0.5*dt*k1, act_phys, sys);
-            [k3,~,~] = dynamics_6dof(t+0.5*dt, x_true + 0.5*dt*k2, act_phys, sys);
-            [k4,~,~] = dynamics_6dof(t+dt,     x_true + dt*k3,     act_phys, sys);
+            [k1,~,~] = dynamics_router(current_config.kinematics, t,          x_true,            act_phys, sys);
+            [k2,~,~] = dynamics_router(current_config.kinematics, t+0.5*dt, x_true + 0.5*dt*k1, act_phys, sys);
+            [k3,~,~] = dynamics_router(current_config.kinematics, t+0.5*dt, x_true + 0.5*dt*k2, act_phys, sys);
+            [k4,~,~] = dynamics_router(current_config.kinematics, t+dt,     x_true + dt*k3,     act_phys, sys);
             x_true = x_true + (dt/6)*(k1 + 2*k2 + 2*k3 + k4);
         end
         
         % Tìm dòng này trong main_sim.m (khoảng dòng 123):
-        hist = data_logger('log', k, x_true, act_phys, act_cmd, setpoints, hist); % Đổi traj_state thành setpoints
+        % Chuyển DCM về Euler trước khi log để đồ thị vẽ đúng
+        if strcmp(current_config.kinematics, 'dcm')
+            % Gọi hàm sensor_router nhưng TẮT nhiễu (0) để log góc thực tế
+            x_log = sensor_router('dcm', x_true, 0); 
+        else
+            x_log = x_true;
+        end
+        hist = data_logger('log', k, x_log, act_phys, act_cmd, setpoints, hist);
         t = t + dt;
     end
     histories{i_test} = hist;
@@ -155,7 +191,7 @@ fprintf('\n======================================================\n');
 fprintf('ĐANG KẾT XUẤT KẾT QUẢ...\n');
 
 % 1. XUẤT BIỂU ĐỒ SO SÁNH (OVERLAY PLOTS)
-data_logger('plot_multi', histories, sys, active_tests, {'pos', 'att', 'act', 'servo'});
+data_logger('plot_multi', histories, sys, active_tests, {'pos', 'att', 'act'});
 
 % 2. XUẤT MÔ HÌNH 3D DIGITAL TWIN (BẬT LẠI THEO YÊU CẦU CỦA BẠN)
 if VISUALIZE_TEST_IDX > 0 && VISUALIZE_TEST_IDX <= num_tests

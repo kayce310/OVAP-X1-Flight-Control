@@ -8,7 +8,7 @@ function sys = init_params()
     % --- 1. Simulation Settings ---
     sys.sim.dt = 0.002;        
     sys.sim.g = 9.81;
-    sys.sim.t_end = 50.0;
+    sys.sim.t_end = 30.0;
     
     % --- 2. Khối lượng & Quán tính (Cập nhật theo thực tế) ---
     % Ước tính: Frame 800g + 8xMotor(400g) + Pin 6S 5000(800g) + Servos(400g) + FC/ESC/GPS(200g)
