@@ -10,22 +10,22 @@ function target = mission_manager(t)
     if t < 5.0
         target.pos   = [0; 0; -5.0];
         target.euler = deg2rad([0; 0; 0]);
+
+    elseif t < 10.0
+        target.pos   = [10; 10; -5.0];
+        target.euler = deg2rad([0; 0; 0]);
+
+    elseif t < 15.0
+        target.pos   = [0; 0; -10.0];
+        target.euler = deg2rad([10; 10; 40]);
+
+    elseif t < 30.0
+        target.pos   = [0; 0; -10.0];
+        target.euler = deg2rad([0; 50; 0]);
+
     % 
-    % elseif t < 10.0
-    %     target.pos   = [0; 0; -5.0];
-    %     target.euler = deg2rad([0; 0; 0]);
-    % 
-    % elseif t < 15.0
-    %     target.pos   = [0; 0; -10.0];
-    %     target.euler = deg2rad([0; 0; 0]);
-    % 
-    % elseif t < 20.0
-    %     target.pos   = [0; 0; -10.0];
-    %     target.euler = deg2rad([0; 0; 0]);
-    % 
-    % % 
     else
         target.pos   = [0; 0; -10.0];
-        target.euler = deg2rad([89; 0; 0]);
+        target.euler = deg2rad([50; 0; 0]);
     end
 end
