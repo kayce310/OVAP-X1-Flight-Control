@@ -45,6 +45,10 @@ function out = data_logger(mode, varargin)
             t = (0:end_idx-1) * sys.sim.dt;
         end
 
+        set(groot, 'DefaultAxesFontSize', 12);
+        set(groot, 'DefaultTextFontSize', 12); % Áp dụng cho title, label
+        set(groot, 'DefaultLegendFontSize', 12);
+        
         hFig = figure('Name', 'OVAP-X1 Interactive Dashboard', 'Color', 'w', 'Units', 'normalized', 'Position', [0.05 0.05 0.9 0.85]);
         tgroup = uitabgroup('Parent', hFig);
 

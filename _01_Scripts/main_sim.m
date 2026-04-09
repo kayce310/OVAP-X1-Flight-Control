@@ -42,7 +42,7 @@ USE_NOISE = 0;
 % --- E. DANH SÁCH CÁC CẤU HÌNH SO SÁNH (A/B TESTING) ---
 active_tests = {
     struct('name', 'PID + Analytical', 'controller', 'pid', 'allocator', 'analytical');
-    % struct('name', 'PID + WPIN',        'controller', 'pid', 'allocator', 'wpin');
+    struct('name', 'PID + WPIN',        'controller', 'pid', 'allocator', 'wpin');
 };
 
 % =========================================================================
