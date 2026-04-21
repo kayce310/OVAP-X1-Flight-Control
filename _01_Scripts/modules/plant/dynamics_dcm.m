@@ -13,10 +13,8 @@ function [dx, F_b_total, M_b_total] = dynamics_dcm(t, x, actuators, sys)
     % Tính toán lực Actuator (Hàm nội bộ bên dưới)
     [F_act_b, M_act_b] = calculate_actuator_forces(actuators, sys);
     
-    % Môi trường DCM
-    g_b = R_eb' * [0; 0; sys.sim.g]; 
-    F_env_b = sys.mass * g_b - diag([0.15; 0.15; 0.30]) * state.vel_b;
-    M_env_b = [0;0;0];
+    % Gọi Môi trường (Truyền R_eb là ma trận Body->Earth)
+    [F_env_b, M_env_b] = environment(t, state, sys, R_eb);
     
     F_sum_b = F_act_b + F_env_b;
     M_sum_b = M_act_b + M_env_b;

@@ -17,8 +17,8 @@ function [dx, F_b_total, M_b_total] = dynamics_quat(t, x, actuators, sys)
     R_be = quat2rotm_local(q);
     
     % Lực môi trường (Trọng lực chiếu xuống Body)
-    F_env_b = R_be' * [0; 0; sys.mass * sys.sim.g]; 
-    M_env_b = [0;0;0];
+    % (Truyền R_be là ma trận Body->Earth)
+    [F_env_b, M_env_b] = environment(t, state, sys, R_be);
     
     F_sum_b = F_act_b + F_env_b;
     M_sum_b = M_act_b + M_env_b;

@@ -14,8 +14,14 @@ function [dx, F_b_total, M_b_total] = dynamics_6dof(t, x, actuators, sys)
     m    = sys.mass;
     
     % Tính toán lực và momen
+    % Tính toán lực Actuator
     [F_act_b, M_act_b] = calculate_actuator_forces(actuators, sys);
-    [F_env_b, M_env_b] = environment(t, state, sys);
+    
+    % [SỬA LỖI]: Tính R_eb trước khi nạp vào environment
+    R_eb = rotation_matrix_body2earth(state.euler); 
+    
+    % Gọi Môi trường
+    [F_env_b, M_env_b] = environment(t, state, sys, R_eb);
     
     F_sum_b = F_act_b + F_env_b;
     M_sum_b = M_act_b + M_env_b;
@@ -110,11 +116,4 @@ function R = rotation_matrix_body2earth(e)
     R = [cos(th)*cos(ps), sin(ph)*sin(th)*cos(ps)-cos(ph)*sin(ps), cos(ph)*sin(th)*cos(ps)+sin(ph)*sin(ps);
          cos(th)*sin(ps), sin(ph)*sin(th)*sin(ps)+cos(ph)*cos(ps), cos(ph)*sin(th)*sin(ps)-sin(ph)*cos(ps);
         -sin(th),         sin(ph)*cos(th),                         cos(ph)*cos(th)];
-end
-
-function [F_env_b, M_env_b] = environment(~, state, sys)
-    % Hàm tính lực môi trường (Trọng lực, lực cản khí động học thân)
-    R_be = rotation_matrix_body2earth(state.euler)'; % Earth to Body
-    F_env_b = R_be * [0; 0; sys.mass * sys.sim.g]; % Trọng lực
-    M_env_b = zeros(3,1); % Bỏ qua nhiễu môi trường tạm thời
 end

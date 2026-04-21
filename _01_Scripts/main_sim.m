@@ -34,7 +34,7 @@ PLANNER_MODE = 1;
 % 1: Xem 3D của cấu hình Test số 1. 
 % 2: Xem 3D của cấu hình Test số 2.
 % 3: ...
-VISUALIZE_TEST_IDX = 0; 
+VISUALIZE_TEST_IDX = 2; 
 
 % --- D. CẤU HÌNH MÔI TRƯỜNG ---
 % [0: TẮT NHIỄU TUYỆT ĐỐI] | [1: BẬT NHIỄU]
@@ -48,11 +48,26 @@ active_tests = {
     % struct('name', 'SO(3)(Lật góc chủ động) PID + Analytical (Vectoring)',  'controller', 'so3', 'allocator', 'vectoring', 'kinematics', 'euler');
     % struct('name', 'PID + WPIN V2.0',       'controller', 'pid', 'allocator', 'wpin', 'kinematics', 'euler');
     % struct('name', 'Euler Plant', 'controller', 'so3', 'allocator', 'vectoring', 'kinematics', 'euler');
-    % struct('name', 'DCM Plant', 'controller', 'so3', 'allocator', 'vectoring', 'kinematics', 'euler');
-    % struct('name', 'SO(3) Euler ', 'controller', 'pid', 'allocator', 'analytical', 'kinematics', 'euler');
-    struct('name', 'Euler',  'controller', 'so3', 'allocator', 'vectoring', 'kinematics', 'euler');
-    struct('name', 'Quaternion',  'controller', 'quaternion', 'allocator', 'vectoring', 'kinematics', 'quat');
+    % struct('name', 'DCM Plant', 'controller', 'pid', 'allocator', 'vectoring', 'kinematics', 'euler');
+    struct('name', 'Euler Analytical', 'controller', 'pid', 'allocator', 'analytical', 'kinematics', 'euler');
+    struct('name', 'Euler Vectoring', 'controller', 'pid', 'allocator', 'vectoring', 'kinematics', 'euler');
+    % struct('name', 'Euler Matrix Vectoring',  'controller', 'so3', 'allocator', 'vectoring', 'kinematics', 'euler');
+    % struct('name', 'Quaternion Analytical',  'controller', 'quaternion', 'allocator', 'analytical', 'kinematics', 'quat');
+    struct('name', 'Quaternion Vectoring',  'controller', 'quaternion', 'allocator', 'vectoring', 'kinematics', 'quat');
 };
+
+    % --- F. CHỌN QUỸ ĐẠO NHIỆM VỤ (MISSION TYPE) ---
+    % 0: Waypoint tĩnh (Giữ nguyên cấu hình cũ)
+    % 1: QUỸ ĐẠO MẮT BÃO (ORBIT WITH CENTER-FOCUS YAW)
+    % 2: CUA NGANG (STRAFING / CRAB WALK)
+    % 3: BAY THẲNG + ROLL DAO ĐỘNG (±90 DEG)
+    MISSION_TYPE = 4; 
+    
+    % Tùy chỉnh thông số quỹ đạo
+    mission_params.v_forward = 5.0;  % Vận tốc tiến (m/s)
+    mission_params.radius    = 10.0;  % Biên độ (m)
+    mission_params.omega     = 1.5;  % Tần số góc (rad/s)
+    mission_params.z_base    = -5.0;% Độ cao (m)
 
 % =========================================================================
 % 2. KHỞI TẠO HỆ THỐNG
@@ -135,7 +150,7 @@ for i_test = 1:num_tests
             % =============================================================
             % [MODE 1] BAY TỰ ĐỘNG (CLOSED-LOOP)
             % =============================================================
-            raw_target = mission_manager(t);
+            raw_target = mission_manager(t, MISSION_TYPE, mission_params);
             [setpoints, traj_state] = trajectory_planner(raw_target, dt, traj_limits, traj_state, PLANNER_MODE, sys);
             [act_cmd, ctrl_state] = flight_main(state_est, setpoints, sys, ctrl_state, active_params, current_config, act_phys);
             
