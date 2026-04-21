@@ -55,6 +55,32 @@ function [actuators_cmd, ctrl_state] = flight_main(state_est, setpoints, sys, ct
         % Lượng giác 1:1 (Chống lật, Bù tiền tiếp)
         [cmd_thrust, cmd_alpha, cmd_beta] = alloc_analytical(...
             acc_cmd_earth, M_body_des, euler_curr, sys, act_phys);
+
+        % BỔ SUNG NHÁNH NÀY CHO MA TRẬN VECTORING
+    % BỔ SUNG NHÁNH NÀY CHO MA TRẬN VECTORING (Đã sửa config -> current_config)
+    elseif strcmp(current_config.allocator, 'alloc_vectoring_r_b2e')
+        % 1. Trích xuất Ma trận xoay R_b2e từ State Estimate
+        if strcmp(current_config.kinematics, 'quat')
+            q = state_est(7:10);
+            q = q / norm(q); % Chuẩn hóa
+            qw=q(1); qx=q(2); qy=q(3); qz=q(4);
+            R_b2e = [1 - 2*(qy^2 + qz^2),   2*(qx*qy - qw*qz),     2*(qx*qz + qw*qy);
+                     2*(qx*qy + qw*qz),     1 - 2*(qx^2 + qz^2),   2*(qy*qz - qw*qx);
+                     2*(qx*qz - qw*qy),     2*(qy*qz + qw*qx),     1 - 2*(qx^2 + qy^2)];
+                     
+        elseif strcmp(current_config.kinematics, 'dcm')
+            R_b2e = reshape(state_est(7:15), 3, 3);
+            
+        else
+            % Fallback an toàn nếu đang dùng Euler
+            ph = state_est(7); th = state_est(8); ps = state_est(9);
+            R_b2e = [cos(th)*cos(ps), sin(ph)*sin(th)*cos(ps)-cos(ph)*sin(ps), cos(ph)*sin(th)*cos(ps)+sin(ph)*sin(ps);
+                     cos(th)*sin(ps), sin(ph)*sin(th)*sin(ps)+cos(ph)*cos(ps), cos(ph)*sin(th)*sin(ps)-sin(ph)*cos(ps);
+                    -sin(th),         sin(ph)*cos(th),                         cos(ph)*cos(th)];
+        end
+        
+        % 2. Gọi hàm Allocator mới
+        [cmd_thrust, cmd_alpha, cmd_beta] = alloc_vectoring_r_b2e(acc_cmd_earth, M_body_des, R_b2e, sys, act_phys);
             
     elseif strcmp(current_config.allocator, 'vectoring')
         % Gọi hàm 3D Force Vectoring V1.5

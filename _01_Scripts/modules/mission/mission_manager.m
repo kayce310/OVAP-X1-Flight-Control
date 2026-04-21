@@ -91,9 +91,18 @@ function target = mission_manager(t, mission_type, params)
 
         otherwise
             % Mặc định: Giữ nguyên logic Waypoint cũ nếu type=0
-            if t < 5.0,     target.pos = [0; 0; -5.0];
-            elseif t < 15.0, target.pos = [0; 5; -5.0]; target.euler = deg2rad([0; 80; 0]);
-            else,            target.pos = [10; 0; -5.0]; target.euler = deg2rad([80; 0; 0]);
+            if t < 5.0   
+                target.pos = [0; 0; -5.0];
+                target.euler = [0; 0; 0];
+            elseif t < 15.0
+                target.pos      = [0; 5; -5.0]; 
+                target.euler    = deg2rad([0; 85; 0]);
+            elseif t < 20.0
+                target.pos      = [0; 5; -5.0]; 
+                target.euler    = deg2rad([0; 85; 0]);
+            else
+                target.pos      = [5; 0; -5.0]; 
+                target.euler    = deg2rad([0; 85; 0]);
             end
     end
     

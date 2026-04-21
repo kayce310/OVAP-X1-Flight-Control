@@ -86,12 +86,25 @@ function out = data_logger(mode, varargin)
         if ismember('att', active_plots)
             tabAtt = uitab('Parent', tgroup, 'Title', '2. Attitude');
             labels = {'Roll (deg)', 'Pitch (deg)', 'Yaw (deg)'};
+            
+            % [BỔ SUNG V2.6]: Xử lý mượt dữ liệu (Stitch & Unwrap) trước khi vẽ
+            % Tạo một cell array chứa dữ liệu Attitude đã được làm mượt cho từng Test
+            smooth_att = cell(1, num_tests);
+            for i = 1:num_tests
+                raw_att = histories{i}.x(7:9, 1:end_idx); % Trích xuất Roll, Pitch, Yaw thô
+                smooth_att{i} = stitch_euler_history(raw_att); % Lọc qua bộ màng lọc Hậu kỳ
+            end
+            
             for row = 1:3
                 ax = axes('Parent', tabAtt, 'Position', [0.08 1.0-row*0.3 0.88 0.22]); hold(ax, 'on'); grid(ax, 'on'); ylabel(ax, labels{row});
+                
                 for i = 1:num_tests
-                    plot(ax, t, rad2deg(histories{i}.x(row+6, 1:end_idx)), 'Color', color_map(i,:), 'LineWidth', 1.5, 'DisplayName', active_tests{i}.name);
+                    % [ĐÃ SỬA]: Vẽ từ smooth_att thay vì histories gốc
+                    plot(ax, t, rad2deg(smooth_att{i}(row, :)), 'Color', color_map(i,:), 'LineWidth', 1.5, 'DisplayName', active_tests{i}.name);
                 end
+                
                 plot(ax, t, rad2deg(histories{1}.euler_des(row, 1:end_idx)), 'k--', 'LineWidth', 1.2, 'DisplayName', 'Setpoint');
+                
                 if row == 3, xlabel(ax, 'Time (s)'); end
                 add_y_margin(ax); 
                 setup_interactive_legend(ax);
@@ -216,4 +229,38 @@ end
 
 function val = if_else(condition, true_val, false_val)
     if condition, val = true_val; else, val = false_val; end
+end
+function euler_stitched = stitch_euler_history(euler_history)
+    % euler_history: Kích thước [3 x N_steps] (Roll, Pitch, Yaw theo radian)
+    N = size(euler_history, 2);
+    euler_stitched = euler_history;
+    is_flipped = false;
+
+    for i = 2:N
+        % [BẢN VÁ TỐI THƯỢNG]: Tính "Khoảng cách góc ngắn nhất" bằng atan2(sin, cos)
+        % Điều này triệt tiêu hoàn toàn các bước nhảy +-360 độ ảo do nhiễu ở vùng biên.
+        delta_roll = euler_history(1, i) - euler_history(1, i-1);
+        delta_yaw  = euler_history(3, i) - euler_history(3, i-1);
+        
+        d_roll_raw = atan2(sin(delta_roll), cos(delta_roll));
+        d_yaw_raw  = atan2(sin(delta_yaw), cos(delta_yaw));
+
+        % Bước nhảy của Lật góc Pitch (Gimbal Flip) luôn tạo ra sai số thực sự là +-180 độ (pi rad).
+        % Nếu dao động Roll/Yaw là nhiễu, d_roll_raw lúc này chỉ còn khoảng 2 độ (0.03 rad) -> Bỏ qua.
+        if abs(d_roll_raw) > 1.5 && abs(d_yaw_raw) > 1.5
+            is_flipped = ~is_flipped;
+        end
+
+        % Khâu đồ thị
+        if is_flipped
+            euler_stitched(2, i) = sign(euler_history(2, i)) * pi - euler_history(2, i);
+            euler_stitched(1, i) = euler_history(1, i) - sign(euler_history(1, i)) * pi;
+            euler_stitched(3, i) = euler_history(3, i) - sign(euler_history(3, i)) * pi;
+        end
+    end
+
+    % Unwrap chuẩn của MATLAB để làm mượt các vòng xoay nhào lộn
+    euler_stitched(1, :) = unwrap(euler_stitched(1, :));
+    euler_stitched(2, :) = unwrap(euler_stitched(2, :));
+    euler_stitched(3, :) = unwrap(euler_stitched(3, :));
 end

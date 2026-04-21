@@ -29,46 +29,54 @@ SIM_MODE = 1;
 % 1: Quỹ đạo mượt (Smooth Trajectory) - Bật mode này để bay thực tế
 PLANNER_MODE = 1; 
 
-% --- C. CẤU HÌNH XUẤT HÌNH ẢNH 3D DIGITAL TWIN ---
+% --- C. CHỌN QUỸ ĐẠO NHIỆM VỤ (MISSION TYPE) ---
+% 0: Waypoint tĩnh (Giữ nguyên cấu hình cũ)
+% 1: QUỸ ĐẠO MẮT BÃO (ORBIT WITH CENTER-FOCUS YAW)
+% 2: CUA NGANG (STRAFING / CRAB WALK)
+% 3: BAY THẲNG + ROLL DAO ĐỘNG (±90 DEG)
+MISSION_TYPE = 0; 
+
+% Tùy chỉnh thông số quỹ đạo
+mission_params.v_forward = 5.0;  % Vận tốc tiến (m/s)
+mission_params.radius    = 5.0;  % Biên độ (m)
+mission_params.omega     = 0.5;  % Tần số góc (rad/s)
+mission_params.z_base    = -5.0;% Độ cao (m)
+
+
+% --- D. CẤU HÌNH XUẤT HÌNH ẢNH 3D DIGITAL TWIN ---
 % 0: Tắt 3D.  
 % 1: Xem 3D của cấu hình Test số 1. 
 % 2: Xem 3D của cấu hình Test số 2.
 % 3: ...
-VISUALIZE_TEST_IDX = 2; 
+VISUALIZE_TEST_IDX = 1; 
 
-% --- D. CẤU HÌNH MÔI TRƯỜNG ---
+% --- E. CẤU HÌNH MÔI TRƯỜNG ---
 % [0: TẮT NHIỄU TUYỆT ĐỐI] | [1: BẬT NHIỄU]
 USE_NOISE = 0; 
 
-% --- E. DANH SÁCH CÁC CẤU HÌNH SO SÁNH (A/B TESTING) ---
+% --- F. DANH SÁCH CÁC CẤU HÌNH SO SÁNH (A/B TESTING) ---
 active_tests = {
-    % struct('name', 'PID + Analytical V1.2', 'controller', 'pid', 'allocator', 'analytical', 'kinematics', 'euler');
-    % struct('name', 'SO(3)(Lật góc chủ động) PID + Analytical',  'controller', 'so3', 'allocator', 'analytical', 'kinematics', 'euler');
-    % struct('name', 'PID + Analytical (Vectoring)',  'controller', 'pid', 'allocator', 'vectoring', 'kinematics', 'euler');
-    % struct('name', 'SO(3)(Lật góc chủ động) PID + Analytical (Vectoring)',  'controller', 'so3', 'allocator', 'vectoring', 'kinematics', 'euler');
-    % struct('name', 'PID + WPIN V2.0',       'controller', 'pid', 'allocator', 'wpin', 'kinematics', 'euler');
-    % struct('name', 'Euler Plant', 'controller', 'so3', 'allocator', 'vectoring', 'kinematics', 'euler');
-    % struct('name', 'DCM Plant', 'controller', 'pid', 'allocator', 'vectoring', 'kinematics', 'euler');
+    % % struct('name', 'PID + Analytical V1.2', 'controller', 'pid', 'allocator', 'analytical', 'kinematics', 'euler');
+    % % struct('name', 'SO(3)(Lật góc chủ động) PID + Analytical',  'controller', 'so3', 'allocator', 'analytical', 'kinematics', 'euler');
+    % % struct('name', 'PID + Analytical (Vectoring)',  'controller', 'pid', 'allocator', 'vectoring', 'kinematics', 'euler');
+    % % struct('name', 'SO(3)(Lật góc chủ động) PID + Analytical (Vectoring)',  'controller', 'so3', 'allocator', 'vectoring', 'kinematics', 'euler');
+    % % struct('name', 'PID + WPIN V2.0',       'controller', 'pid', 'allocator', 'wpin', 'kinematics', 'euler');
+    % % struct('name', 'Euler Plant', 'controller', 'so3', 'allocator', 'vectoring', 'kinematics', 'euler');
+    % % struct('name', 'DCM Plant', 'controller', 'pid', 'allocator', 'vectoring', 'kinematics', 'euler');
     struct('name', 'Euler Analytical', 'controller', 'pid', 'allocator', 'analytical', 'kinematics', 'euler');
-    struct('name', 'Euler Vectoring', 'controller', 'pid', 'allocator', 'vectoring', 'kinematics', 'euler');
+    % struct('name', 'Euler Vectoring', 'controller', 'pid', 'allocator', 'vectoring', 'kinematics', 'euler');
     % struct('name', 'Euler Matrix Vectoring',  'controller', 'so3', 'allocator', 'vectoring', 'kinematics', 'euler');
+    % struct('name', 'Euler Vectoring', 'controller', 'pid', 'allocator', 'vectoring', 'kinematics', 'euler');
+    % struct('name', 'Euler WPIN',  'controller', 'pid', 'allocator', 'wpin', 'kinematics', 'euler');
+    % struct('name', 'Matrix Vectoring',  'controller', 'so3', 'allocator', 'vectoring', 'kinematics', 'euler');
+    % struct('name', 'Matrix WPIN',  'controller', 'so3', 'allocator', 'wpin', 'kinematics', 'euler');
     % struct('name', 'Quaternion Analytical',  'controller', 'quaternion', 'allocator', 'analytical', 'kinematics', 'quat');
-    struct('name', 'Quaternion Vectoring',  'controller', 'quaternion', 'allocator', 'vectoring', 'kinematics', 'quat');
+    % struct('name', 'Quaternion Matrix Vectoring',  'controller', 'quaternion', 'allocator', 'alloc_vectoring_r_b2e', 'kinematics', 'quat');
+    % struct('name', 'Quaternion Vectoring',  'controller', 'quaternion', 'allocator', 'vectoring', 'kinematics', 'quat');
+    struct('name', 'Quaternion WPIN',  'controller', 'quaternion', 'allocator', 'wpin', 'kinematics', 'quat');
 };
 
-    % --- F. CHỌN QUỸ ĐẠO NHIỆM VỤ (MISSION TYPE) ---
-    % 0: Waypoint tĩnh (Giữ nguyên cấu hình cũ)
-    % 1: QUỸ ĐẠO MẮT BÃO (ORBIT WITH CENTER-FOCUS YAW)
-    % 2: CUA NGANG (STRAFING / CRAB WALK)
-    % 3: BAY THẲNG + ROLL DAO ĐỘNG (±90 DEG)
-    MISSION_TYPE = 4; 
     
-    % Tùy chỉnh thông số quỹ đạo
-    mission_params.v_forward = 5.0;  % Vận tốc tiến (m/s)
-    mission_params.radius    = 10.0;  % Biên độ (m)
-    mission_params.omega     = 1.5;  % Tần số góc (rad/s)
-    mission_params.z_base    = -5.0;% Độ cao (m)
-
 % =========================================================================
 % 2. KHỞI TẠO HỆ THỐNG
 % =========================================================================
@@ -95,10 +103,10 @@ for i_test = 1:num_tests
     % Nạp đúng bộ thông số (Gain Tuning)
     if strcmp(current_config.allocator, 'analytical')
         active_params = all_params.pid_analytical;
-    elseif strcmp(current_config.allocator, 'vectoring')
-        active_params = all_params.pid_vectoring;
-    else 
+    elseif strcmp(current_config.allocator, 'wpin')
         active_params = all_params.pid_wpin;
+    else 
+        active_params = all_params.pid_vectoring;
     end
 
     % Reset Trạng thái hệ thống

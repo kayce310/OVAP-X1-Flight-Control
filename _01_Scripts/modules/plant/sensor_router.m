@@ -8,16 +8,13 @@ function meas = sensor_router(kinematics_mode, x_true, use_noise, varargin)
         if strcmp(output_format, 'native_13')
             meas = x_true; % Truyền thẳng 13 biến cho Não PX4
         else
-            % Dịch an toàn về 12 biến (CÓ CHỐNG GIMBAL LOCK) cho Logger & Không làm nổ Servo
+            % Dịch an toàn về 12 biến cho Logger
             q = x_true(7:10); q = q / norm(q); qw=q(1); qx=q(2); qy=q(3); qz=q(4);
+            
             pitch = asin(max(min(2*(qw*qy - qz*qx), 1), -1));
-            if abs(cos(pitch)) > 1e-4
-                roll  = atan2(2*(qw*qx + qy*qz), 1 - 2*(qx^2 + qy^2));
-                yaw   = atan2(2*(qw*qz + qx*qy), 1 - 2*(qy^2 + qz^2));
-            else % Xử lý kỳ dị tại đúng 90 độ
-                roll = 0;
-                yaw  = atan2(-2*(qx*qy - qw*qz), 1 - 2*(qx^2 + qz^2));
-            end
+            roll  = atan2(2*(qw*qx + qy*qz), 1 - 2*(qx^2 + qy^2));
+            yaw   = atan2(2*(qw*qz + qx*qy), 1 - 2*(qy^2 + qz^2));
+                        
             x_legacy = [x_true(1:6); roll; pitch; yaw; x_true(11:13)];
             meas = sensor_model(x_legacy, use_noise);
         end
