@@ -42,14 +42,16 @@ USE_NOISE = 0;
 
 % --- E. DANH SÁCH CÁC CẤU HÌNH SO SÁNH (A/B TESTING) ---
 active_tests = {
-    struct('name', 'PID + Analytical V1.2', 'controller', 'pid', 'allocator', 'analytical', 'kinematics', 'euler');
-    struct('name', 'SO(3)(Lật góc chủ động) PID + Analytical',  'controller', 'so3', 'allocator', 'analytical', 'kinematics', 'euler');
-    struct('name', 'PID + Analytical (Vectoring)',  'controller', 'pid', 'allocator', 'vectoring', 'kinematics', 'euler');
-    struct('name', 'SO(3)(Lật góc chủ động) PID + Analytical (Vectoring)',  'controller', 'so3', 'allocator', 'vectoring', 'kinematics', 'euler');
+    % struct('name', 'PID + Analytical V1.2', 'controller', 'pid', 'allocator', 'analytical', 'kinematics', 'euler');
+    % struct('name', 'SO(3)(Lật góc chủ động) PID + Analytical',  'controller', 'so3', 'allocator', 'analytical', 'kinematics', 'euler');
+    % struct('name', 'PID + Analytical (Vectoring)',  'controller', 'pid', 'allocator', 'vectoring', 'kinematics', 'euler');
+    % struct('name', 'SO(3)(Lật góc chủ động) PID + Analytical (Vectoring)',  'controller', 'so3', 'allocator', 'vectoring', 'kinematics', 'euler');
     % struct('name', 'PID + WPIN V2.0',       'controller', 'pid', 'allocator', 'wpin', 'kinematics', 'euler');
     % struct('name', 'Euler Plant', 'controller', 'so3', 'allocator', 'vectoring', 'kinematics', 'euler');
     % struct('name', 'DCM Plant', 'controller', 'so3', 'allocator', 'vectoring', 'kinematics', 'euler');
     % struct('name', 'SO(3) Euler ', 'controller', 'pid', 'allocator', 'analytical', 'kinematics', 'euler');
+    struct('name', 'Euler',  'controller', 'so3', 'allocator', 'vectoring', 'kinematics', 'euler');
+    struct('name', 'Quaternion',  'controller', 'quaternion', 'allocator', 'vectoring', 'kinematics', 'quat');
 };
 
 % =========================================================================
@@ -68,8 +70,13 @@ histories = cell(1, num_tests);
 % =========================================================================
 for i_test = 1:num_tests
     current_config = active_tests{i_test};
-    fprintf('\n---> Đang chạy Test %d/%d: [%s]...\n', i_test, num_tests, current_config.name);
+    % [BẢO VỆ]: Nếu code cũ không có trường kinematics, mặc định là euler (Dời lên trước khi in)
+    if ~isfield(current_config, 'kinematics'), current_config.kinematics = 'euler'; end
     
+    % [CẬP NHẬT]: In log chi tiết theo yêu cầu
+    fprintf('\n---> Đang chạy Test %d/%d: [%s], controller dùng %s, bộ phân bổ %s, động học %s...\n', ...
+        i_test, num_tests, current_config.name, ...
+        current_config.controller, current_config.allocator, current_config.kinematics);
     % Nạp đúng bộ thông số (Gain Tuning)
     if strcmp(current_config.allocator, 'analytical')
         active_params = all_params.pid_analytical;
@@ -85,9 +92,12 @@ for i_test = 1:num_tests
     if ~isfield(current_config, 'kinematics'), current_config.kinematics = 'euler'; end
 
     % Khởi tạo
-    if strcmp(current_config.kinematics, 'dcm')
+    if strcmp(current_config.kinematics, 'quat')
+        x_true = zeros(13, 1);
+        x_true(7) = 1; % q_w = 1 (Tư thế góc 0 độ mặc định)
+    elseif strcmp(current_config.kinematics, 'dcm')
         x_true = zeros(18, 1);
-        x_true(7:15) = reshape(eye(3), 9, 1); % R_init = Ma trận đơn vị
+        x_true(7:15) = reshape(eye(3), 9, 1); 
     else
         x_true = zeros(12, 1); 
     end
@@ -101,20 +111,25 @@ for i_test = 1:num_tests
     traj_state = [];
     
     % hist = data_logger('init', N_steps, x_true);
-    % Dịch trạng thái khởi tạo về 12-biến để tương thích với cấu trúc Logger
-    if strcmp(current_config.kinematics, 'dcm')
-        x_log_init = sensor_router('dcm', x_true, 0);
+
+    if strcmp(current_config.kinematics, 'quat') || strcmp(current_config.kinematics, 'dcm')
+        x_log_init = sensor_router(current_config.kinematics, x_true, 0); 
     else
         x_log_init = x_true;
     end
-    
     hist = data_logger('init', N_steps, x_log_init);
     
     % --- VÒNG LẶP THỜI GIAN (FLIGHT LOOP) ---
     t = 0;
     for k = 1:N_steps
         % Dùng Sensor Router thay vì gọi trực tiếp
-        state_est = sensor_router(current_config.kinematics, x_true, USE_NOISE);
+        % state_est = sensor_router(current_config.kinematics, x_true, USE_NOISE);
+        % Yêu cầu 13 biến nếu đang dùng Não Quaternion, ngược lại mặc định 12 biến
+        req_format = 'legacy_12';
+        if strcmp(current_config.controller, 'quaternion')
+            req_format = 'native_13'; 
+        end
+        state_est = sensor_router(current_config.kinematics, x_true, USE_NOISE, req_format);
         
         if SIM_MODE == 1
             % =============================================================
@@ -172,11 +187,8 @@ for i_test = 1:num_tests
             x_true = x_true + (dt/6)*(k1 + 2*k2 + 2*k3 + k4);
         end
         
-        % Tìm dòng này trong main_sim.m (khoảng dòng 123):
-        % Chuyển DCM về Euler trước khi log để đồ thị vẽ đúng
-        if strcmp(current_config.kinematics, 'dcm')
-            % Gọi hàm sensor_router nhưng TẮT nhiễu (0) để log góc thực tế
-            x_log = sensor_router('dcm', x_true, 0); 
+        if strcmp(current_config.kinematics, 'quat') || strcmp(current_config.kinematics, 'dcm')
+            x_log = sensor_router(current_config.kinematics, x_true, 0); 
         else
             x_log = x_true;
         end
