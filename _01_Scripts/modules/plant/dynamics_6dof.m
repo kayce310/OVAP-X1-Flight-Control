@@ -35,7 +35,7 @@ function [dx, F_b_total, M_b_total] = dynamics_6dof(t, x, actuators, sys)
     % Kinematics & Navigation
     phi = state.euler(1); theta = state.euler(2);
     ct = cos(theta); if abs(ct)<0.01, ct=0.01; end
-    tt = sin(theta)/ct; % An toàn tuyệt đối
+    tt = sin(theta)/ct; 
     phi_dot   = state.rates(1) + (state.rates(2)*sin(phi) + state.rates(3)*cos(phi)) * tt;
     theta_dot = state.rates(2)*cos(phi) - state.rates(3)*sin(phi);
     psi_dot   = (state.rates(2)*sin(phi) + state.rates(3)*cos(phi)) / ct;

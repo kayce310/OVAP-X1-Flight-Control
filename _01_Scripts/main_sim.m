@@ -73,7 +73,7 @@ active_tests = {
     % struct('name', 'Quaternion Analytical',  'controller', 'quaternion', 'allocator', 'analytical', 'kinematics', 'quat');
     % struct('name', 'Quaternion Matrix Vectoring',  'controller', 'quaternion', 'allocator', 'alloc_vectoring_r_b2e', 'kinematics', 'quat');
     % struct('name', 'Quaternion Vectoring',  'controller', 'quaternion', 'allocator', 'vectoring', 'kinematics', 'quat');
-    struct('name', 'Quaternion WPIN',  'controller', 'quaternion', 'allocator', 'wpin', 'kinematics', 'quat');
+    % struct('name', 'Quaternion WPIN',  'controller', 'quaternion', 'allocator', 'wpin', 'kinematics', 'quat');
 };
 
     
