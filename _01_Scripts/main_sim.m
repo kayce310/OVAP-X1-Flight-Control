@@ -37,12 +37,12 @@ VISUALIZE_TEST_IDX = 1;
 
 % --- D. CẤU HÌNH MÔI TRƯỜNG ---
 % [0: TẮT NHIỄU TUYỆT ĐỐI] | [1: BẬT NHIỄU]
-USE_NOISE = 0; 
+USE_NOISE = 1; 
 
 % --- E. DANH SÁCH CÁC CẤU HÌNH SO SÁNH (A/B TESTING) ---
 active_tests = {
     struct('name', 'PID + Analytical', 'controller', 'pid', 'allocator', 'analytical');
-    struct('name', 'PID + WPIN',        'controller', 'pid', 'allocator', 'wpin');
+    % struct('name', 'PID + WPIN',        'controller', 'pid', 'allocator', 'wpin');
 };
 
 % =========================================================================
@@ -144,7 +144,7 @@ for i_test = 1:num_tests
         end
         
         % Tìm dòng này trong main_sim.m (khoảng dòng 123):
-        hist = data_logger('log', k, x_true, act_phys, act_cmd, setpoints, hist); % Đổi traj_state thành setpoints
+            hist = data_logger('log', k, x_true, act_phys, act_cmd, setpoints, hist);
         t = t + dt;
     end
     histories{i_test} = hist;
@@ -155,11 +155,11 @@ fprintf('\n======================================================\n');
 fprintf('ĐANG KẾT XUẤT KẾT QUẢ...\n');
 
 % 1. XUẤT BIỂU ĐỒ SO SÁNH (OVERLAY PLOTS)
-data_logger('plot_multi', histories, sys, active_tests, {'pos', 'att', 'act', 'servo'});
+data_logger('plot_multi', histories, sys, active_tests, {'pos', 'att', 'act'});
 
 % 2. XUẤT MÔ HÌNH 3D DIGITAL TWIN (BẬT LẠI THEO YÊU CẦU CỦA BẠN)
 if VISUALIZE_TEST_IDX > 0 && VISUALIZE_TEST_IDX <= num_tests
     fprintf('Đang khởi động 3D Digital Twin cho [%s]...\n', active_tests{VISUALIZE_TEST_IDX}.name);
     t_arr = (0:N_steps-1)*dt;
-    visualize_3d(histories{VISUALIZE_TEST_IDX}, sys, t_arr);
+    visualize_3d2(histories{VISUALIZE_TEST_IDX}, sys, t_arr);
 end
