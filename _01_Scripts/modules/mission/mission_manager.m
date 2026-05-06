@@ -23,9 +23,16 @@ function target = mission_manager(t)
         target.pos   = [10; 10; -10.0];
         target.euler = deg2rad([20; 0; -90]);
 
+    elseif t < 30.0
+        target.pos   = [10; 10; -10.0];
+        target.euler = deg2rad([0; 20; -90]);
+
+    elseif t < 40.0
+        target.pos   = [10; 10; -10.0];
+        target.euler = deg2rad([30; 0; -70]);
 
     else
-        target.pos   = [5; -5; -10.0];
+        target.pos   = [10; 10; -10.0];
         target.euler = deg2rad([0; 50; -45]);
     end
 end

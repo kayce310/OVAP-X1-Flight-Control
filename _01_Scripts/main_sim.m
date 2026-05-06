@@ -161,5 +161,5 @@ data_logger('plot_multi', histories, sys, active_tests, {'pos', 'att', 'act'});
 if VISUALIZE_TEST_IDX > 0 && VISUALIZE_TEST_IDX <= num_tests
     fprintf('Đang khởi động 3D Digital Twin cho [%s]...\n', active_tests{VISUALIZE_TEST_IDX}.name);
     t_arr = (0:N_steps-1)*dt;
-    visualize_3d2(histories{VISUALIZE_TEST_IDX}, sys, t_arr);
+    visualize_3d(histories{VISUALIZE_TEST_IDX}, sys, t_arr);
 end

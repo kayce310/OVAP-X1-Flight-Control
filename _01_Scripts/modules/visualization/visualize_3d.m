@@ -1,4 +1,4 @@
-function visualize_3d2(hist, sys, t_arr)
+function visualize_3d(hist, sys, t_arr)
 % File Name: visualize_3d.m
 % Position: Root > modules > visualization > visualize_3d.m
 % Description: Interactive 3D Digital Twin with Deadband Camera Tracking
@@ -23,7 +23,7 @@ function visualize_3d2(hist, sys, t_arr)
     
     %% ================= SETUP FIGURE & AXES =================
     hFig = figure('Name', 'OVAP-X1 Digital Twin', 'Color', UI_BG_COLOR, ...
-        'Units', 'normalized', 'Position', [0.1 0.1 0.8 0.8], 'MenuBar', 'figure', 'ToolBar', 'figure'); 
+        'Units', 'normalized', 'Position', [0.1 0.1 0.8 0.8], 'MenuBar', 'none', 'ToolBar', 'figure'); 
     % TRẢ LẠI LAYOUT CŨ: 22% HUD TRÁI + 75% MAIN 3D
     ax = axes('Parent', hFig, 'Color', AXES_BG_COLOR, 'XColor', 'k', 'YColor', 'k', 'ZColor', 'k', ...
         'Units', 'normalized', 'Position', [0.25 0.15 0.7 0.85]); 
@@ -159,8 +159,8 @@ function visualize_3d2(hist, sys, t_arr)
             cx = mean(xl); cy = mean(yl); cz = mean(zl);
             span = max([(xl(2)-xl(1))/2, (yl(2)-yl(1))/2, (zl(2)-zl(1))/2]);
             
-            % Mặc định span 3m (đủ không gian xung quanh)
-            if span < 2.5, span = 2.5; end           
+            % Mặc định span 1.5m (zoom chặt theo máy bay)
+            if span < 1.5, span = 1.5; end           
             if span > max_span, span = max_span; end 
             
             % Deadband 20% cạnh khung
