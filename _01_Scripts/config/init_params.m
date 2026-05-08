@@ -78,6 +78,14 @@ function sys = init_params()
     sys.servo.dir_alpha = sys.hw_map(:, 7);
     sys.servo.dir_beta  = sys.hw_map(:, 8);
     
+    % --- 4.4. Aerodynamic Parameters (Thiết kế PDF Mục 4.3) ---
+    % Đồng bộ với v1.5: F_drag^B = -C_d * ν (linear) + M_drag = -C_m * ω
+    sys.aero.C_d_coeff = [0.15; 0.15; 0.30];  % [Cd_x; Cd_y; Cd_z] (N/(m/s))
+    sys.aero.C_d_matrix = diag(sys.aero.C_d_coeff);
+    
+    sys.aero.C_m_coeff = [0.05; 0.05; 0.10];  % [Cm_p; Cm_q; Cm_r] (Nm/(rad/s))
+    sys.aero.C_m_matrix = diag(sys.aero.C_m_coeff);
+    
     % --- 5. Initial Conditions ---
     sys.init.x = zeros(12, 1);
 end

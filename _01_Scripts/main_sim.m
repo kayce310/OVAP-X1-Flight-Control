@@ -35,7 +35,7 @@ PLANNER_MODE = 1;
 % 2: CUA NGANG (STRAFING / CRAB WALK)
 % 3: BAY THẲNG + ROLL DAO ĐỘNG (±90 DEG)
 % 4: LƯỢN SÓNG 3D (3D CORKSCREW / HELIX WAVE)
-MISSION_TYPE = 1;  
+MISSION_TYPE = 4;  
 
 % Tùy chỉnh thông số quỹ đạo
 mission_params.v_forward = 2.0;  % Vận tốc tiến (m/s)

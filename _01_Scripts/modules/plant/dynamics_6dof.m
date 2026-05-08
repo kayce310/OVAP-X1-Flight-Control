@@ -115,6 +115,16 @@ end
 function [F_env_b, M_env_b] = environment(~, state, sys)
     % Hàm tính lực môi trường (Trọng lực, lực cản khí động học thân)
     R_be = rotation_matrix_body2earth(state.euler)'; % Earth to Body
-    F_env_b = R_be * [0; 0; sys.mass * sys.sim.g]; % Trọng lực
-    M_env_b = zeros(3,1); % Bỏ qua nhiễu môi trường tạm thời
+    F_gravity_b = R_be * [0; 0; sys.mass * sys.sim.g]; % Trọng lực
+    
+    % Lực cản khí động (Linear Drag) - đồng bộ với v1.5
+    vel_b = state.vel_b;
+    rates = state.rates;
+    F_drag_b = -sys.aero.C_d_matrix * vel_b;
+    
+    % Momen cản quay (Rotational Damping) - giúp attitude PID ổn định
+    M_drag_b = -sys.aero.C_m_matrix * rates;
+    
+    F_env_b = F_gravity_b + F_drag_b;
+    M_env_b = M_drag_b;
 end

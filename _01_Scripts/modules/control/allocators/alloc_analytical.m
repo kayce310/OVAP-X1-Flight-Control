@@ -18,10 +18,6 @@ function [cmd_thrust, cmd_alpha, cmd_beta] = alloc_analytical(acc_cmd_earth, M_b
     cmd_effort_pitch = M_body_des(2); % My
     cmd_effort_yaw   = M_body_des(3); % Mz
     
-    % Nhận diện Bán cầu lật úp
-    inv_x = sign(cos(pitch) + eps);
-    inv_y = sign(cos(roll)  + eps);
-    
     % =====================================================================
     % 2. BỘ TÍNH TOÁN VỊ TRÍ & NGÀM SERVO (Decoupling & Assist)
     % =====================================================================
@@ -88,9 +84,9 @@ function [cmd_thrust, cmd_alpha, cmd_beta] = alloc_analytical(acc_cmd_earth, M_b
     pitch_parasitic = K_cross_pitch * sin(net_alpha); 
     roll_parasitic  = K_cross_roll  * sin(net_beta);  
     
-    % Áp dụng Trigger Bán cầu
-    real_cmd_pitch = (cmd_effort_pitch - pitch_parasitic) * inv_x;
-    real_cmd_roll  = (cmd_effort_roll  - roll_parasitic)  * inv_y;
+    % Bỏ trigger bán cầu (đồng bộ với v1.5 — vì Mission 4 chỉ bay pitch ~0)
+    real_cmd_pitch = cmd_effort_pitch - pitch_parasitic;
+    real_cmd_roll  = cmd_effort_roll  - roll_parasitic;
     
     % Phân rã Đồng trục (R-CRM)
     cmd_thrust = zeros(8,1); 

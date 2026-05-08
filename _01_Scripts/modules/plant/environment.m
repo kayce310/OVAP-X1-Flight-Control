@@ -6,8 +6,10 @@ function [F_env_b, M_env_b] = environment(t, state, sys)
     % --- 1. Unpack State ---
     % state.vel_b: Vận tốc trong hệ Body (u, v, w)
     % state.euler: Góc Euler (phi, theta, psi)
+    % state.rates: Vận tốc góc (p, q, r)
     vel_b = state.vel_b;
     euler = state.euler;
+    rates = state.rates;
     
     phi   = euler(1);
     theta = euler(2);
@@ -22,26 +24,15 @@ function [F_env_b, M_env_b] = environment(t, state, sys)
     F_gravity_b = sys.mass * g_b;
     
     % --- 3. Aerodynamic Drag (Body Frame) ---
-    % Giả sử mô hình cản tuyến tính đơn giản: F_drag = -Cd * V
-    % Trong thực tế, có thể thay bằng mô hình: F = -0.5 * rho * V^2 * S * Cd
-    
-    % Hệ số cản (Có thể đưa vào sys.aero nếu cần)
-    % Cd_x, Cd_y thấp (ít cản), Cd_z cao (cản lớn khi rơi)
-    C_d_coeff = [0.15; 0.15; 0.30]; 
-    C_d = diag(C_d_coeff);
-    
-    % Wind Simulation (Optional)
-    % Giả sử có gió thổi theo hướng Bắc (North) 2m/s
-    % v_wind_ned = [0; 0; 0]; 
-    % Nếu có gió, cần chuyển v_wind sang Body và trừ vào vel_b để ra Airspeed.
-    
+    % F_drag^B = -C_d * ν (linear) — đồng bộ với v1.5
+    C_d = sys.aero.C_d_matrix;
     F_drag_b = -C_d * vel_b;
     
     % --- 4. Total Environmental Forces ---
     F_env_b = F_gravity_b + F_drag_b;
     
-    % Moment do khí động học (Aerodynamic Moments)
-    % Tạm thời bỏ qua hoặc thêm damping momen quay
-    % M_drag = -C_m * rates
-    M_env_b = [0; 0; 0];
+    % --- 5. Rotational Damping (Aerodynamic Moments) ---
+    % M_drag = -C_m * rates — giúp attitude PID ổn định hơn
+    C_m = sys.aero.C_m_matrix;
+    M_env_b = -C_m * rates;
 end
