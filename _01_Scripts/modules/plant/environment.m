@@ -1,38 +1,21 @@
-function [F_env_b, M_env_b] = environment(t, state, sys)
-% File Name: environment.m
-% Position in Structure: Root > plant_model > environment.m
-% Brief Function Description: Calculates environmental forces (Gravity, Drag, Wind) in Body Frame.
-
-    % --- 1. Unpack State ---
-    % state.vel_b: Vận tốc trong hệ Body (u, v, w)
-    % state.euler: Góc Euler (phi, theta, psi)
-    % state.rates: Vận tốc góc (p, q, r)
+function [F_env_b, M_env_b] = environment(t, state, sys, R_b2e)
     vel_b = state.vel_b;
-    euler = state.euler;
     rates = state.rates;
     
-    phi   = euler(1);
-    theta = euler(2);
+    % Trọng lực
+    g_body = R_b2e' * [0; 0; sys.sim.g];
+    F_gravity_b = sys.mass * g_body;
     
-    % --- 2. Gravity (Body Frame) ---
-    % Chuyển vector trọng lực [0; 0; g] từ hệ NED sang Body
-    % R_eb' * [0;0;g]
-    g_b = sys.sim.g * [ -sin(theta);
-                         cos(theta)*sin(phi);
-                         cos(theta)*cos(phi) ];
-                     
-    F_gravity_b = sys.mass * g_b;
+    % Gió (nếu có)
+    v_wind_b = R_b2e' * sys.env.wind_ned;
+    v_air_b = vel_b - v_wind_b;
     
-    % --- 3. Aerodynamic Drag (Body Frame) ---
-    % F_drag^B = -C_d * ν (linear) — đồng bộ với v1.5
-    C_d = sys.aero.C_d_matrix;
-    F_drag_b = -C_d * vel_b;
+    % Cản tĩnh (Gọi từ sys.aero)
+    F_drag_b = -sys.aero.C_d_matrix * v_air_b;
     
-    % --- 4. Total Environmental Forces ---
+    % Ma sát xoay (Gọi từ sys.aero)
+    M_drag_b = -sys.aero.C_m_matrix * rates;
+    
     F_env_b = F_gravity_b + F_drag_b;
-    
-    % --- 5. Rotational Damping (Aerodynamic Moments) ---
-    % M_drag = -C_m * rates — giúp attitude PID ổn định hơn
-    C_m = sys.aero.C_m_matrix;
-    M_env_b = -C_m * rates;
+    M_env_b = M_drag_b;
 end

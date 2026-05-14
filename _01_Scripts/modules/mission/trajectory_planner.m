@@ -42,7 +42,6 @@ function [setpoint, traj_state] = trajectory_planner(target, dt, constraints, tr
     % =====================================================================
     % Hệ số P của quỹ đạo (Độ gắt khi kéo về đích)
     % Tăng cao cho quỹ đạo parametric (orbit, strafe, roll, corkscrew)
-    % để bám sát setpoint thay đổi liên tục
     k_pos_smooth = 3.0; 
     k_att_smooth = 3.0; 
 

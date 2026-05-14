@@ -9,7 +9,7 @@ function target = mission_manager(t, mission_type, params)
     if nargin < 3
         params.v_forward = 2.0;  % Vận tốc tiến (m/s)
         params.radius    = 5.0;  % Bán kính/Biên độ (m)
-        params.omega     = 1.0;  % Tần số quỹ đạo (rad/s)
+        params.omega     = 0.4;  % Tần số quỹ đạo (rad/s)
         params.z_base    = -5.0; % Độ cao cơ sở
     end
 
@@ -28,19 +28,18 @@ function target = mission_manager(t, mission_type, params)
             radius_scale = 1 + 0.02 * t_flight;
             current_radius = params.radius * min(radius_scale, 3.0);
             
-            % Độ cao tăng dần: từ z_base bay lên (z_base âm, nên càng ngày càng gần 0)
-            % Tốc độ leo: 0.3 m/s
+            % Độ cao tăng dần trong hệ NED: z_base âm, bay lên nghĩa là z tiến về 0.
             ascend_rate = -0.3;
             current_z = params.z_base + ascend_rate * t_flight;
-            % current_z = min(current_z, -2.0); % Giới hạn độ cao tối đa -2m (cách mặt đất 2m)
+            % current_z = min(current_z, -2.0);
             
             target.pos(1) = current_radius * cos(params.omega * t_flight);
             target.pos(2) = current_radius * sin(params.omega * t_flight);
             target.pos(3) = current_z;
             
-            % Ép Yaw chĩa vào tâm: Vector từ Current_Pos đến (0,0)
+            % Ép Yaw chĩa vào tâm
             target.euler(3) = atan2(-target.pos(2), -target.pos(1));
-            % Roll = Pitch = 0 (giữ nguyên mặc định)
+            % Roll = Pitch = 0 (mặc định)
 
         case 2
             % -------------------------------------------------------------
@@ -91,14 +90,14 @@ function target = mission_manager(t, mission_type, params)
             
             % --- Tư thế ---
             % Cách 1: Mặt luôn nhìn thẳng (Test Vectoring thần thánh)
-            target.euler = [0; 0; 0];
+            % target.euler = [0; 0; 0];
             
             % Cách 2 (Tùy chọn): Mũi luôn hướng theo quỹ đạo 3D (Bỏ comment để dùng)
-            % dx = params.v_forward;
-            % dy = params.radius * params.omega * cos(params.omega * t_flight);
-            % dz = -z_amplitude * params.omega * 2 * sin(params.omega * t_flight * 2);
-            % target.euler(3) = atan2(dy, dx);     % Yaw bám quỹ đạo ngang
-            % target.euler(2) = atan2(-dz, sqrt(dx^2+dy^2)); % Pitch bám quỹ đạo dọc
+            dx = params.v_forward;
+            dy = params.radius * params.omega * cos(params.omega * t_flight);
+            dz = -z_amplitude * params.omega * 2 * sin(params.omega * t_flight * 2);
+            target.euler(3) = atan2(dy, dx);     % Yaw bám quỹ đạo ngang
+            target.euler(2) = atan2(-dz, sqrt(dx^2+dy^2)); % Pitch bám quỹ đạo dọc
 
         otherwise
             % Mặc định: Giữ nguyên logic Waypoint cũ nếu type=0
